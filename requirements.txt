@@ -1,0 +1,5 @@
+# Core: beets 2.x with the bundled smartplaylist/playlist/random/fuzzy/types plugins
+beets>=2.0
+
+# For the lastgenre and lastimport plugins enabled in config/config.yaml
+pylast
