@@ -3,3 +3,8 @@ beets>=2.0
 
 # For the lastgenre and lastimport plugins enabled in config/config.yaml
 pylast
+
+# scripts/fingerprint_parallel.py needs no extra Python packages, but does
+# need Chromaprint's fpcalc binary on $PATH:
+#   Debian/Ubuntu: apt install libchromaprint-tools
+#   macOS:         brew install chromaprint
