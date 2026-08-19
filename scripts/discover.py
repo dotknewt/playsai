@@ -27,7 +27,7 @@ import urllib.parse
 import urllib.request
 from collections import defaultdict
 
-USER_AGENT = "playsai/0.1 (https://github.com/dotknewt/playsai)"
+USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
 
 
 def api_get(url, params):
