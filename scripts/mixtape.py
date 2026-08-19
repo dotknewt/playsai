@@ -14,12 +14,18 @@ Uses the beets Python API, so any beets query works as a filter:
       --query 'genre:ambient' --minutes 45
   python3 scripts/mixtape.py --db library.db --out gym.m3u \\
       --query 'bpm:120..' --minutes 60 --spacing 5
+
+Defaults for --db and --music-dir can also be set via a .env file
+(PLAYSAI_DB, PLAYSAI_MUSIC_DIR) — see scripts/_env.py. CLI flags always
+override the .env value.
 """
 
 import argparse
 import random
 import sys
 import time
+
+import _env
 
 try:
     from beets import config as beets_config
@@ -68,7 +74,9 @@ def pick_tracks(items, target_seconds, spacing, rng, now):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--db", required=True, help="path to beets library.db")
+    ap.add_argument("--db", default=_env.get("DB"),
+                     required=_env.get("DB") is None,
+                     help="path to beets library.db (or set PLAYSAI_DB)")
     ap.add_argument("--out", required=True, help="output .m3u path")
     ap.add_argument("--query", default="", help="beets query to filter the pool "
                     "(e.g. 'genre:rock year:1990..')")
@@ -76,9 +84,10 @@ def main():
                     help="target playlist length (default 60)")
     ap.add_argument("--spacing", type=int, default=3,
                     help="min tracks between repeats of an artist (default 3)")
-    ap.add_argument("--music-dir",
+    ap.add_argument("--music-dir", default=_env.get("MUSIC_DIR"),
                     help="music directory that library paths are relative to "
-                         "(default: `directory` from your beets config)")
+                         "(default: `directory` from your beets config, or "
+                         "PLAYSAI_MUSIC_DIR)")
     ap.add_argument("--seed", type=int, help="random seed for reproducible mixes")
     args = ap.parse_args()
 

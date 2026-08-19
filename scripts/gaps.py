@@ -12,6 +12,9 @@ Reads library.db read-only; makes at most one MusicBrainz request per second
 Examples:
   python3 scripts/gaps.py --db ~/.config/beets/library.db --artists 5
   python3 scripts/gaps.py --db library.db --artist "Stereolab"
+
+The default for --db can also be set via a .env file (PLAYSAI_DB) — see
+scripts/_env.py. A CLI flag always overrides the .env value.
 """
 
 import argparse
@@ -22,6 +25,8 @@ import sys
 import time
 import urllib.parse
 import urllib.request
+
+import _env
 
 USER_AGENT = "playsai/0.1 (https://github.com/dotknewt/playsai)"
 MB_ROOT = "https://musicbrainz.org/ws/2"
@@ -112,7 +117,9 @@ def discography(artist_mbid, include_secondary):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--db", required=True, help="path to beets library.db")
+    ap.add_argument("--db", default=_env.get("DB"),
+                     required=_env.get("DB") is None,
+                     help="path to beets library.db (or set PLAYSAI_DB)")
     ap.add_argument("--artists", type=int, default=5,
                     help="check your top N artists by owned-album count "
                          "(default 5; each artist costs >=1 MB request)")

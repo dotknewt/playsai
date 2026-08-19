@@ -15,6 +15,10 @@ Examples:
   python3 scripts/discover.py --db library.db --seeds 15 --limit 40
   python3 scripts/discover.py --db library.db --artist "Boards of Canada"
   python3 scripts/discover.py --db library.db --source lastfm --lastfm-key KEY
+
+Defaults for --db, --source and --lastfm-key can also be set via a .env
+file (PLAYSAI_DB, PLAYSAI_SOURCE, PLAYSAI_LASTFM_KEY) — see scripts/_env.py.
+CLI flags always override the .env value.
 """
 
 import argparse
@@ -26,6 +30,8 @@ import time
 import urllib.parse
 import urllib.request
 from collections import defaultdict
+
+import _env
 
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
 
@@ -105,7 +111,9 @@ def similar_lastfm(artist_name, limit, api_key):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--db", required=True, help="path to beets library.db")
+    ap.add_argument("--db", default=_env.get("DB"),
+                     required=_env.get("DB") is None,
+                     help="path to beets library.db (or set PLAYSAI_DB)")
     ap.add_argument("--seeds", type=int, default=10,
                     help="number of top library artists to seed with (default 10)")
     ap.add_argument("--artist", action="append", default=[],
@@ -115,8 +123,11 @@ def main():
                     help="max recommendations to print (default 25)")
     ap.add_argument("--per-seed", type=int, default=20,
                     help="similar artists fetched per seed (default 20)")
-    ap.add_argument("--source", choices=["deezer", "lastfm"], default="deezer")
-    ap.add_argument("--lastfm-key", help="Last.fm API key (for --source lastfm)")
+    ap.add_argument("--source", choices=["deezer", "lastfm"],
+                     default=_env.get("SOURCE", "deezer"))
+    ap.add_argument("--lastfm-key", default=_env.get("LASTFM_KEY"),
+                     help="Last.fm API key (for --source lastfm; or set "
+                          "PLAYSAI_LASTFM_KEY)")
     ap.add_argument("--json", action="store_true", help="emit JSON instead of text")
     args = ap.parse_args()
 
