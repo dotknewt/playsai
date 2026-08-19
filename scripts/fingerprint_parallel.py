@@ -13,8 +13,11 @@ Resumable by construction: only tracks with no stored fingerprint are
 selected, so rerunning after Ctrl-C, a crash, or new imports continues where
 the last run stopped. An interrupt flushes everything already computed.
 
-Once fingerprints are stored, `beet submit` sends them to AcoustID without
-re-decoding, and chroma reuses them instead of recomputing.
+Once fingerprints are stored, the chroma commands reuse them instead of
+re-decoding: `beet submit` sends them straight to AcoustID (that command
+needs the chroma plugin enabled, pyacoustid installed, and an AcoustID API
+key). Import-time matching still decodes files fresh — chroma fingerprints
+the file on disk during import, before it is in the library.
 
 Requires Chromaprint's fpcalc binary on $PATH:
   Debian/Ubuntu: apt install libchromaprint-tools
@@ -31,11 +34,13 @@ import argparse
 import concurrent.futures
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import time
 
 try:
+    from beets.dbcore.query import InvalidQueryError
     from beets.library import Library
 except ImportError:
     sys.exit("beets is required: pip install beets")
@@ -43,8 +48,12 @@ except ImportError:
 
 def run_fpcalc(fpcalc, path, length, timeout):
     """Fingerprint one file. Returns (fingerprint, error), one of them None."""
-    if not os.path.exists(path):
+    try:
+        os.stat(path)
+    except FileNotFoundError:
         return None, "file does not exist"
+    except OSError as exc:
+        return None, f"cannot access file: {exc.strerror}"
     cmd = [fpcalc]
     if length:
         cmd += ["-length", str(length)]
@@ -78,10 +87,21 @@ def flush(lib, buffered, write_tags):
         item.acoustid_fingerprint = fp
         if write_tags:
             item.try_write()  # file I/O stays outside the db transaction
-    with lib.transaction():
-        for item, _fp in buffered:
-            item.store()
-    buffered.clear()
+    # A Ctrl-C landing inside beets' Transaction.__enter__/__exit__ leaves its
+    # per-thread tx stack or db lock in a state where a later transaction
+    # silently never commits, or deadlocks. Hold SIGINT until the commit is
+    # through; the pending interrupt is delivered right after the unmask.
+    can_mask = hasattr(signal, "pthread_sigmask")
+    if can_mask:
+        mask = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGINT})
+    try:
+        with lib.transaction():
+            for item, _fp in buffered:
+                item.store()
+        buffered.clear()
+    finally:
+        if can_mask:
+            signal.pthread_sigmask(signal.SIG_SETMASK, mask)
 
 
 def main():
@@ -117,24 +137,38 @@ def main():
                  "  Debian/Ubuntu: apt install libchromaprint-tools\n"
                  "  macOS:         brew install chromaprint")
 
-    query = [] if args.force else ["^acoustid_fingerprint::."]
-    if args.query:
-        query.append(args.query)
+    if not os.path.exists(args.db):
+        # Library() would silently create a fresh empty db on a typoed path
+        sys.exit(f"library database not found: {args.db}")
     lib = Library(args.db)
-    items = list(lib.items(" ".join(query)))
+    try:
+        items = list(lib.items(args.query))
+    except InvalidQueryError as exc:
+        sys.exit(f"invalid beets query: {exc}")
+    if not args.force:
+        # Filter by truthiness like chroma does, not with a SQL-side
+        # '^acoustid_fingerprint::.' term: that also catches rows left NULL
+        # by old library migrations, and a user query's comma-OR branches
+        # can't bypass a Python-side filter.
+        items = [it for it in items if not it.acoustid_fingerprint]
 
     # chroma won't fingerprint tracks without a duration (AcoustID needs it),
     # so mirror that instead of storing fingerprints `beet submit` can't use.
-    no_duration = [it for it in items if not it.length]
+    no_duration = sum(1 for it in items if not it.length)
     items = [it for it in items if it.length]
-    for item in no_duration:
-        print(f"  ! {os.fsdecode(item.path)}: no duration in library, skipping",
-              file=sys.stderr)
+    if no_duration:
+        print(f"skipping {no_duration} tracks with no duration in the "
+              "library (chroma can't use them either)", file=sys.stderr)
     if args.limit:
         items = items[:args.limit]
     if not items:
-        print("nothing to do: no matching tracks" if args.force else
-              "nothing to do: every matching track already has a fingerprint")
+        if no_duration:
+            print("nothing to do: only tracks without a duration remain")
+        elif args.force:
+            print("nothing to do: no matching tracks")
+        else:
+            print("nothing to do: every matching track already has a "
+                  "fingerprint")
         return
 
     total = len(items)
@@ -145,12 +179,12 @@ def main():
     interrupted = False
     start = time.time()
     pool = concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs)
-    futures = {
-        pool.submit(run_fpcalc, fpcalc, os.fsdecode(item.path),
-                    args.length, args.timeout): item
-        for item in items
-    }
     try:
+        futures = {
+            pool.submit(run_fpcalc, fpcalc, os.fsdecode(item.path),
+                        args.length, args.timeout): item
+            for item in items
+        }
         for future in concurrent.futures.as_completed(futures):
             item = futures[future]
             try:
@@ -177,12 +211,21 @@ def main():
         pool.shutdown(wait=False, cancel_futures=True)
         print("\ninterrupted — storing what finished; rerun to continue",
               file=sys.stderr)
+    except BaseException:
+        # Cancel the queued backlog: without this, the executor's atexit
+        # hook would run fpcalc on every remaining track after the traceback.
+        pool.shutdown(wait=False, cancel_futures=True)
+        raise
     finally:
-        flush(lib, buffered, args.write)
+        try:
+            flush(lib, buffered, args.write)
+        except Exception as exc:
+            print(f"\ncould not store {len(buffered)} finished fingerprints "
+                  f"({exc}); rerun to recompute them", file=sys.stderr)
 
     elapsed = time.time() - start
-    print(f"\nstored {done - failed} fingerprints ({failed} failed, "
-          f"{len(no_duration)} without duration) in {elapsed / 60:.1f} min "
+    print(f"\nstored {done - failed} fingerprints ({failed} failed) "
+          f"in {elapsed / 60:.1f} min "
           f"({done / max(elapsed, 1e-9):.1f} tracks/s)")
     if interrupted:
         sys.exit(130)

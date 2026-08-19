@@ -8,3 +8,5 @@ pylast
 # need Chromaprint's fpcalc binary on $PATH:
 #   Debian/Ubuntu: apt install libchromaprint-tools
 #   macOS:         brew install chromaprint
+# To then use the stored fingerprints with `beet submit` / the chroma
+# plugin, also: pip install pyacoustid

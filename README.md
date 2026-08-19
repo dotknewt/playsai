@@ -145,8 +145,11 @@ or `brew install chromaprint` (macOS). Worth knowing:
   rerun after Ctrl-C (which flushes what finished), a crash, or new imports
   and it continues where it stopped.
 * **Same output as beets.** It stores the identical fingerprint string the
-  chroma plugin would, so afterwards `beet submit` pushes them to AcoustID
-  without re-decoding and chroma reuses them during matching.
+  chroma plugin would, so `beet submit` pushes them to AcoustID without
+  re-decoding (that command needs the chroma plugin enabled, `pip install
+  pyacoustid`, and an [AcoustID API key](https://acoustid.org/api-key)).
+  Import-time matching still decodes files fresh — chroma fingerprints files
+  on disk before they're in the library.
 * `--query 'added:-1m..'` restricts to any beets query; `--force`
   re-fingerprints; `--write` also writes tags into the audio files;
   `--limit 50` for a trial run.
