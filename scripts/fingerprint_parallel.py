@@ -23,6 +23,10 @@ Requires Chromaprint's fpcalc binary on $PATH:
   Debian/Ubuntu: apt install libchromaprint-tools
   macOS:         brew install chromaprint
 
+--db can also come from a PLAYSAI_DB entry in a .env file (current
+directory, then the repo root) — see scripts/_env.py. A CLI flag always
+overrides the .env value.
+
 Examples:
   python3 scripts/fingerprint_parallel.py --db ~/.config/beets/library.db
   python3 scripts/fingerprint_parallel.py --db library.db --jobs 8 \\
@@ -38,6 +42,8 @@ import signal
 import subprocess
 import sys
 import time
+
+import _env
 
 try:
     from beets.dbcore.query import InvalidQueryError
@@ -106,7 +112,10 @@ def flush(lib, buffered, write_tags):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--db", required=True, help="path to beets library.db")
+    ap.add_argument("--db", default=_env.get("DB"),
+                     required=_env.get("DB") is None,
+                     help="path to beets library.db (or set PLAYSAI_DB "
+                          "in .env — see scripts/_env.py)")
     ap.add_argument("--query", default="",
                     help="restrict to a beets query "
                          "(e.g. 'genre:rock' or 'path:/mnt/music/A')")
