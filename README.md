@@ -6,14 +6,16 @@ plugin, plus scripts that use the same database to **discover music you don't
 have yet**.
 
 ```
-config/config.yaml      # drop-in beets config: plugins + 13 smart playlists
-scripts/discover.py     # "artists like my favorites that I don't own" (Deezer/Last.fm)
-scripts/gaps.py         # albums missing from artists you already collect (MusicBrainz)
-scripts/mixtape.py      # weighted-random mixes with artist spacing (beets query API)
+config/config.yaml              # drop-in beets config: plugins + 13 smart playlists
+scripts/discover.py             # "artists like my favorites that I don't own" (Deezer/Last.fm)
+scripts/gaps.py                 # albums missing from artists you already collect (MusicBrainz)
+scripts/mixtape.py              # weighted-random mixes with artist spacing (beets query API)
+scripts/fingerprint_parallel.py # AcoustID fingerprints, N fpcalc workers, 1 db writer
 ```
 
-Everything that reads `library.db` directly opens it **read-only**, so the
-scripts are safe to run against a live library.
+The discovery scripts read `library.db` **read-only**, so they are safe to
+run against a live library. `fingerprint_parallel.py` is the one writer in
+the repo — it batches its writes through a single process (see below).
 
 ## Quick start
 
@@ -119,6 +121,40 @@ $ python3 scripts/mixtape.py --db library.db --out chill.m3u \
 ```
 
 Run it from cron for a fresh "daily mix" every morning.
+
+## Fast AcoustID fingerprinting — `scripts/fingerprint_parallel.py`
+
+`beet fingerprint` (the [chroma plugin](https://beets.readthedocs.io/en/stable/plugins/chroma.html))
+decodes one track at a time, so fingerprinting a large library takes days.
+And running several `beet` processes against one `library.db` makes them
+fight over SQLite's single write lock. This script does the same work with
+the bottlenecks removed: N parallel `fpcalc` processes decode audio, while
+one thread stores results into the `acoustid_fingerprint` field in batched
+transactions — every core busy, exactly one database writer.
+
+```
+$ python3 scripts/fingerprint_parallel.py --db ~/.config/beets/library.db --jobs 8
+fingerprinting 12480 tracks with 8 fpcalc workers
+  310/12480 done, 2 failed, 9.8 tracks/s, ETA 20.7 min
+```
+
+Needs Chromaprint's CLI: `apt install libchromaprint-tools` (Debian/Ubuntu)
+or `brew install chromaprint` (macOS). Worth knowing:
+
+* **Resumable.** Only tracks without a stored fingerprint are selected, so
+  rerun after Ctrl-C (which flushes what finished), a crash, or new imports
+  and it continues where it stopped.
+* **Same output as beets.** It stores the identical fingerprint string the
+  chroma plugin would, so `beet submit` pushes them to AcoustID without
+  re-decoding (that command needs the chroma plugin enabled, `pip install
+  pyacoustid`, and an [AcoustID API key](https://acoustid.org/api-key)).
+  Import-time matching still decodes files fresh — chroma fingerprints files
+  on disk before they're in the library.
+* `--query 'added:-1m..'` restricts to any beets query; `--force`
+  re-fingerprints; `--write` also writes tags into the audio files;
+  `--limit 50` for a trial run.
+* Safe alongside the read-only scripts here, but don't run it during a
+  `beet import` — two writers serialize on SQLite's lock at best.
 
 ## Automation
 
