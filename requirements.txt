@@ -1,9 +1,10 @@
+#uv pip install "beets[chroma,beets-alternatives]"
 # Core: beets 2.x with the bundled smartplaylist/playlist/random/fuzzy/types plugins
-beets>=2.0
-
+#beets>=2.0
+beets[chroma,beets-alternatives]
 # For the lastgenre and lastimport plugins enabled in config/config.yaml
 pylast
-
+pyacoustid
 # scripts/fingerprint_parallel.py needs no extra Python packages, but does
 # need Chromaprint's fpcalc binary on $PATH:
 #   Debian/Ubuntu: apt install libchromaprint-tools

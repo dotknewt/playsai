@@ -1,28 +1,7 @@
-directory: ~/Music
-library: ~/.config/beets/musiclibrary.db
-import:
-  move: no       # critical
-  copy: no       # critical
-  write: yes
-  quiet: yes
-  timid: no
-  autotag: yes
-
-plugins: musicbrainz duplicates chroma alternatives
-
-alternatives:
-  rockbox:
-    directory: /run/media/dotme/7B70-434E/music
-    paths:
-      default: $albumartist/$album/$track $title
-    formats: flac mp3      # match what Rockbox plays well
-    #query: "onplayer:true"
-    query: ""
-    removable: true
+plugins: musicbrainz duplicates
 
 chroma:
-    auto: yes
-
+    auto: no
 acoustid:
   apikey: bcPOEMhUUd
 

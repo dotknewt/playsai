@@ -1,12 +1,9 @@
 directory: ~/Music
 library: ~/.config/beets/musiclibrary.db
 import:
-  move: no       # critical
-  copy: no       # critical
-  write: yes
-  quiet: yes
-  timid: no
-  autotag: yes
+  copy: no # edit files in place
+  move: no # Move files to directory
+  write: yes  # Modify tags
 
 plugins: musicbrainz duplicates chroma alternatives
 

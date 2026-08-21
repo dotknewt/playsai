@@ -1,0 +1,96 @@
+# playsai — beets configuration focused on smart playlists and discovery.
+#
+# Drop-in usage:
+#   1. Adjust `directory` and `library` to match your setup.
+#   2. Merge this file into ~/.config/beets/config.yaml (or point beets at it
+#      with `beet -c config/config.yaml ...`).
+#   3. Run `beet splupdate` to generate every playlist below.
+#
+# Playlists regenerate automatically whenever the database changes (imports,
+# `beet modify`, `beet lastimport`, ...) because smartplaylist's `auto` option
+# defaults to yes.
+
+directory: ~/Music
+library: ~/.config/beets/library.db
+
+plugins:
+  - smartplaylist   # query -> .m3u files (the core of this repo)
+  - playlist        # treat existing .m3u files as queries (playlist:mix.m3u)
+  - random          # `beet random` for one-off shuffles
+  - fuzzy           # typo-tolerant queries: `beet fuzzy Radiohed`
+  - types           # declare types for flexible attributes so ranges work
+  - lastgenre       # canonical genres from Last.fm (needs pylast)
+  - lastimport      # pull play counts from a Last.fm account (needs pylast)
+  - info
+  - hook
+
+# Flexible attributes are plain strings until you declare them. Declaring
+# them here is what makes range queries like rating:8..10 and date math like
+# last_played:..-6m work in playlist definitions.
+types:
+  rating: int
+  play_count: int
+  skip_count: int
+  last_played: date
+
+lastgenre:
+  count: 1
+  source: album
+
+# lastimport:
+#   user: YOUR_LASTFM_USERNAME
+#   api_key: YOUR_LASTFM_API_KEY
+
+smartplaylist:
+  playlist_dir: ~/Music/playlists
+  relative_to: ~/Music
+  output: m3u
+  playlists:
+    # ---- freshness ----------------------------------------------------
+    - name: recently-added.m3u
+      query: 'added:-4w.. added-'
+
+    - name: fresh-favorites.m3u
+      query: 'added:-6m.. rating:8..10'
+
+    # ---- ratings / play history --------------------------------------
+    # Ratings and play counts come from `beet modify rating=9 <query>`,
+    # `beet lastimport`, or the mpdstats plugin if you listen through MPD.
+    - name: favorites.m3u
+      query: 'rating:8..10 artist+ year+'
+
+    # Union query (a list = OR): explicit zero plays OR field never set.
+    - name: never-played.m3u
+      query:
+        - 'play_count:0'
+        - '^play_count::.'
+
+    # Heavily played once, untouched for half a year.
+    - name: rediscover.m3u
+      query: 'play_count:5.. last_played:..-6m'
+
+    # ---- moods & genres (uses lastgenre output; adapt to your tags) ---
+    - name: genre-rock.m3u
+      query: 'genre:rock year-'
+
+    - name: genre-electronic.m3u
+      query: 'genre:electronic'
+
+    # Anything you have hand-tagged: `beet modify mood=chill <query>`
+    - name: mood-chill.m3u
+      query: 'mood:chill'
+
+    # ---- eras ---------------------------------------------------------
+    - name: decade-1990s.m3u
+      query: 'year:1990..1999 album+'
+
+    - name: decade-2000s.m3u
+      query: 'year:2000..2009 album+'
+
+    # ---- utility ------------------------------------------------------
+    # Full-length albums you rated highly, as an album-level query.
+    - name: favorite-albums.m3u
+      album_query: 'rating:8..10'
+
+    - name: short-and-sweet.m3u
+      query: 'length:..180'
