@@ -1,0 +1,18 @@
+musicbrainz:
+  host: musicbrainz.org
+  https: no
+  ratelimit: 1
+  ratelimit_interval: 1.0
+  extra_tags: [alias, barcode, catalognum, country, label, media, tracks, year]
+  genres: yes
+  genres_tag: genre
+  external_ids:
+    discogs: no
+    bandcamp: no
+    spotify: no
+    deezer: no
+    beatport: no
+    tidal: no
+  data_source_mismatch_penalty: 0.3 # preferred
+  search_limit: 5
+  aliases_as_credits: no

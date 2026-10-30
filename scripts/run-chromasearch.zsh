@@ -7,5 +7,5 @@ for f in $files; do
   fp=$(fpcalc -plain "$f") || continue
   [[ -n $fp ]] || continue
   printf '\n== %s\n' "$f"
-  beet chromasearch -c 3 -w -s "$fp" </dev/null
+  /home/dotme/Code/playsai/.venv/bin/beet chromasearch -c 3 -w -s "$fp" </dev/null
 done

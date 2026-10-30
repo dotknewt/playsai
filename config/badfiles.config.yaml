@@ -1,0 +1,7 @@
+badfiles:
+    check_on_import: no
+    import_action_on_error: skip # ask skip abort continue
+    import_action_on_warning: continue # ask skip abort continue
+    commands:
+        ogg: myoggchecker --opt1 --opt2
+        flac: flac --test --warnings-as-errors --silent

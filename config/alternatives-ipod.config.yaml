@@ -1,0 +1,9 @@
+alternatives:
+  rockbox:
+    directory: /run/media/dotme/IPOD/music
+    paths:
+      default: $albumartist/$album/$track $title
+    formats: flac mp3      # match what Rockbox plays well
+    #query: "onplayer:true"
+    query: ""
+    removable: true

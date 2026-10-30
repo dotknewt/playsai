@@ -1,0 +1,9 @@
+smartplaylist:
+    relative_to: ~/Music
+    playlist_dir: ~/.mpd/playlists
+    forward_slash: no
+    playlists:
+        - name: all.m3u
+          query: ''
+        - name: DreamTheater.m3u
+          query: 'artist:Dream Theater'

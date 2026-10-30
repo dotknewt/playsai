@@ -1,5 +1,7 @@
-directory: ~/Music
+directory: ~/Projects/data/media/music
 library: ~/.config/beets/musiclibrary.db
+plugins: musicbrainz acoustid chroma lastgenre
+
 import:
   move: no       # critical
   copy: no       # critical
@@ -8,23 +10,26 @@ import:
   timid: no
   autotag: yes
 
-plugins: musicbrainz duplicates chroma alternatives
-
-alternatives:
-  rockbox:
-    directory: /run/media/dotme/7B70-434E/music
-    paths:
-      default: $albumartist/$album/$track $title
-    formats: flac mp3      # match what Rockbox plays well
-    #query: "onplayer:true"
-    query: ""
-    removable: true
-
 chroma:
-    auto: yes
-
+    auto: no
 acoustid:
   apikey: bcPOEMhUUd
+
+lastgenre:
+  auto: yes
+  canonical: no
+  cleanup_existing: no
+  count: 5
+  fallback: null
+    force: yes
+  keep_existing: no
+    min_weight: 10
+  prefer_specific: yes
+    source: album
+  whitelist: yes
+  title_case: yes
+    ignorelist: no
+  aliases: yes
 
 musicbrainz:
   host: musicbrainz.org
@@ -45,20 +50,3 @@ musicbrainz:
   search_limit: 5
   aliases_as_credits: no
 
-badfiles:
-    check_on_import: yes
-    import_action_on_error: skip # ask skip abort continue
-    import_action_on_warning: continue # ask skip abort continue
-    commands:
-        ogg: myoggchecker --opt1 --opt2
-        flac: flac --test --warnings-as-errors --silent
-
-smartplaylist:
-    relative_to: ~/Music
-    playlist_dir: ~/.mpd/playlists
-    forward_slash: no
-    playlists:
-        - name: all.m3u
-          query: ''
-        - name: DreamTheater.m3u
-          query: 'artist:Dream Theater'
