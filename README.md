@@ -1,5 +1,10 @@
 # playsai — smart playlists & music discovery for beets
 
+# Intro
+- write tags to files: `beet write /path/to/music`
+- import/update database (no file write): `beet import -A -C -M -W /path/to/music`
+- write metadata to files: `beet import -w /path/to/music`
+
 A toolkit for driving playlists out of a (large) beets `library.db` with the
 [smartplaylist](https://beets.readthedocs.io/en/stable/plugins/smartplaylist.html)
 plugin, plus scripts that use the same database to **discover music you don't
