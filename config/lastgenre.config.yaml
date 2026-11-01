@@ -1,0 +1,15 @@
+lastgenre:
+  auto: yes
+  canonical: no
+  cleanup_existing: no
+  count: 5
+  fallback: null
+  force: yes
+  keep_existing: no
+  min_weight: 10
+  prefer_specific: yes
+  source: album
+  whitelist: yes
+  title_case: yes
+  ignorelist: no
+  aliases: yes

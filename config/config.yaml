@@ -11,24 +11,24 @@ import:
   autotag: yes
 
 chroma:
-    auto: no
+  auto: no
 acoustid:
   apikey: bcPOEMhUUd
 
 lastgenre:
   auto: yes
-  canonical: no
+  canonical: yes
   cleanup_existing: no
   count: 5
   fallback: null
-    force: yes
+  force: yes
   keep_existing: no
-    min_weight: 10
+  min_weight: 10
   prefer_specific: yes
-    source: album
+  source: album
   whitelist: yes
   title_case: yes
-    ignorelist: no
+  ignorelist: no
   aliases: yes
 
 musicbrainz:
